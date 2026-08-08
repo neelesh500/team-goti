@@ -164,7 +164,7 @@ export const startInterview = async (sessionId, candidate) => {
 
 export const chatInterview = async (sessionId, message) => {
     await delay(1000);
-    const response = generateAIResponse(sessionId, message);
+    const response = await generateAIResponse(sessionId, message);
     return {
         sessionId,
         reply: response.text,
