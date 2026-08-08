@@ -1,50 +1,106 @@
 // Synthetic Backend for GitHub Pages Deployment
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// Real AI Integration for GitHub Pages using Gemini API
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ""; // Add your key here before pushing, or in your VITE .env file
 
 const sessions = {};
+const curriculum = ["Prompt Engineering", "RAG & Chunking", "Vector Databases & Cosine Similarity", "Agentic AI (ReAct)", "Model Context Protocol (MCP)", "Production & Deployment"];
 
-function generateAIResponse(sessionId, candidateMessage) {
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function generateAIResponse(sessionId, candidateMessage) {
     const session = sessions[sessionId];
-
-    if (!session) {
-        return { text: "Session error. Please start a new interview." };
-    }
+    if (!session) return { text: "Session error. Please start a new interview.", isFinished: false };
 
     session.turns++;
+    session.history.push({ role: "user", parts: [{ text: candidateMessage }] });
 
-    if (session.turns > 8 && !session.concluded) {
-        session.concluded = true;
-        return {
-            text: "Thank you for these insightful answers. Based on our conversation, you've shown a strong grasp of building RAG systems and Agentic AI, though reviewing Vector Search optimizations could be beneficial. I've compiled your feedback. The interview is now complete. Good luck on your AI engineering journey!",
-            feedback: {
-                strengths: [
-                    "Clear understanding of Agent workflows",
-                    "Good practical knowledge of RAG",
-                ],
-                gaps: ["Deepen knowledge on chunking strategies"],
-                next: ["Review Vector Search optimizations", "Explore advanced MCP concepts"],
-                summary: "Pass. Ready for production AI roles.",
-            },
-            isFinished: true,
-        };
+    // IF GEMINI IS NOT CONFIGURED, USE ADVANCED OFFLINE ALGORITHM
+    if (!GEMINI_API_KEY) {
+        const lowerMsg = candidateMessage.toLowerCase();
+        const badWords = ["stupid", "idiot", "fuck", "shit", "dumb", "hell", "bastard"];
+
+        let reply = "";
+        if (badWords.some(w => lowerMsg.includes(w))) {
+            reply = "Excuse me! As your interviewer, I expect a professional tone and appropriate language. Please compose yourself and answer the question technically.";
+        } else if (candidateMessage.length < 15) {
+            reply = "Could you please elaborate on that? In a technical interview, we expect detailed explanations.";
+        } else {
+            const nextTopic = curriculum[Math.min(session.turns - 1, curriculum.length - 1)];
+            reply = `That's an interesting perspective. Moving on to ${nextTopic}, can you explain your practical experience and understanding of it?`;
+        }
+
+        if (session.turns > 6) {
+            return {
+                text: "Thank you for these insightful answers. Based on our conversation, I've compiled your feedback. The interview is now complete.",
+                feedback: {
+                    strengths: ["Attempted to answer core topics"],
+                    gaps: ["Needs more depth in technical explanations without API keys!"],
+                    next: ["Integrate Gemini API key for real AI experience."],
+                    summary: "Pass (Offline Mode). Configure API Key for real assessment."
+                },
+                isFinished: true,
+            };
+        }
+
+        session.history.push({ role: "model", parts: [{ text: reply }] });
+        return { text: reply, isFinished: false };
     }
 
-    const questions = [
-        "Welcome to your technical interview for the AI Cohort! Let's start with Prompt Engineering. Can you explain the difference between zero-shot and few-shot prompting, and when you'd use each?",
-        "Great. Moving on to Retrieval-Augmented Generation (RAG). If your semantic search is returning irrelevant results, what steps would you take to diagnose and improve the chunking strategy?",
-        "That makes sense. In relation to that, how do Vector Databases calculate similarity between these chunks? Can you explain Cosine Similarity in simple terms?",
-        "Interesting. Let's switch gears to Agentic AI. You've built systems using the ReAct framework. How does an agent decide when to use a tool versus when it has enough information to answer?",
-        "I see. Let's talk about the Model Context Protocol (MCP). How does MCP standardize the connection between AI agents and external data sources?",
-        "Good explanation. When preparing these models for AI Deployment, what are the primary challenges of deploying large language models on edge devices vs cloud servers?",
-        "Lastly, regarding Production AI Systems, how do you handle monitoring and evaluations in production contexts to detect model drift?",
-    ];
+    // --- REAL GEMINI API LOGIC --- //
+    if (session.turns > 6 && !session.concluded) {
+        session.concluded = true;
+        // Ask Gemini to generate JSON feedback
+        session.history.push({ role: "user", parts: [{ text: "The interview is now over. Provide a final evaluation of the candidate in STRICT JSON format exactly matching this structure without any markdown or extra text: {\"text\": \"final goodbye message\", \"feedback\": {\"strengths\": [\"str1\"], \"gaps\": [\"gap1\"], \"next\": [\"next1\"], \"summary\": \"overall summary\"}}" }] });
+    }
 
-    const qIndex = Math.min(session.turns - 1, questions.length - 1);
-    return {
-        text: questions[qIndex],
-        isFinished: false,
-    };
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                systemInstruction: {
+                    parts: [{
+                        text: `You are a strict, highly professional Technical AI Interviewer for the 'AI Cohort'. You are interviewing ${session.candidate.member.name} for the role of ${session.candidate.member.jobRole}. 
+Your goal is to test their knowledge on: RAG, Agents, LLMs, Vector DBs, and MCP.
+RULES:
+1. Ask ONE clear, challenging technical question at a time.
+2. Adapt to their previous answer. If they give a short/vague answer, press them for details.
+3. IF THEY USE UNPROFESSIONAL, ABUSIVE, SLANG, OR WRONG LANGUAGE, severely scold them like a real, demanding interviewer. Remind them of professionalism.
+4. Maintain context. Don't repeat questions.` }]
+                },
+                contents: session.history
+            })
+        });
+
+        const data = await response.json();
+        const aiText = data.candidates[0].content.parts[0].text;
+
+        if (session.concluded) {
+            try {
+                // Parse the JSON block out of the text if it includes markdown
+                const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+                const result = JSON.parse(jsonMatch ? jsonMatch[0] : aiText);
+                return {
+                    text: result.text || "Interview concluded. Thank you.",
+                    feedback: result.feedback,
+                    isFinished: true
+                };
+            } catch (e) {
+                return {
+                    text: "Interview concluded successfully.",
+                    feedback: { strengths: ["Good completion"], gaps: [], next: [], summary: "Completed" },
+                    isFinished: true
+                };
+            }
+        }
+
+        session.history.push({ role: "model", parts: [{ text: aiText }] });
+        return { text: aiText, isFinished: false };
+    } catch (err) {
+        console.error("Gemini Error:", err);
+        return { text: "Network error with AI. Please try again.", isFinished: false };
+    }
 }
 
 export const fetchCandidates = async () => {
@@ -88,10 +144,20 @@ export const fetchCandidates = async () => {
 
 export const startInterview = async (sessionId, candidate) => {
     await delay(1000);
-    sessions[sessionId] = { turns: 0, concluded: false };
+    sessions[sessionId] = {
+        turns: 0,
+        concluded: false,
+        candidate: candidate,
+        history: []
+    };
+
+    // Initial message
+    const msg = `Hi ${candidate.member.name}. I'm your AI Interviewer. We'll be evaluating your knowledge on the 31-day AI Cohort topics today. Are you ready to begin your technical assessment?`;
+    sessions[sessionId].history.push({ role: "model", parts: [{ text: msg }] });
+
     return {
         sessionId,
-        reply: "Hi there! I'm your AI Interviewer. We'll be covering the concepts you learned in the 31-day AI Cohort, from Prompt Engineering to Production AI Systems. Are you ready to begin?",
+        reply: msg,
         done: false,
     };
 };
