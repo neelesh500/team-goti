@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "title": "OpenAI introduces a new AI model",
+    "source": "AI News",
+    "category": "Artificial Intelligence",
+    "score": 92
+  },
+  {
+    "id": 2,
+    "title": "New open-source LLM gains popularity",
+    "source": "GitHub",
+    "category": "Machine Learning",
+    "score": 87
+  },
+  {
+    "id": 3,
+    "title": "AI agents are changing software development",
+    "source": "Tech News",
+    "category": "AI Agents",
+    "score": 84
+  }
+]
