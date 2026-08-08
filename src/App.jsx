@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Bot, CheckCircle2, BrainCircuit, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fetchCandidates, startInterview as mockStart, chatInterview } from './mockBackend';
 import './index.css';
 
 function App() {
@@ -16,9 +17,8 @@ function App() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // Fetch candidates on load
-    fetch('http://localhost:3001/api/candidates')
-      .then(res => res.json())
+    // Fetch candidates on load bypassing backend to work on GitHub Pages
+    fetchCandidates()
       .then(data => setCandidates(data))
       .catch(err => console.error("Error fetching candidates:", err));
   }, []);
@@ -36,12 +36,7 @@ function App() {
     setIsTyping(true);
     try {
       const sessionId = 'session_' + Math.random().toString(36).substring(7);
-      const res = await fetch('http://localhost:3001/api/interview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, candidate })
-      });
-      const data = await res.json();
+      const data = await mockStart(sessionId, candidate);
       setSession(sessionId);
       setMessages([{ role: 'ai', text: data.reply }]);
     } catch (err) {
@@ -62,12 +57,7 @@ function App() {
     setIsTyping(true);
 
     try {
-      const res = await fetch('http://localhost:3001/api/interview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: session, message: userText })
-      });
-      const data = await res.json();
+      const data = await chatInterview(session, userText);
 
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
 

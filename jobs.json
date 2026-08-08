@@ -1,0 +1,121 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 93120737012,
+      "run_id": 31264655647,
+      "workflow_name": "Deploy static content to Pages",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/neelesh500/team-goti/actions/runs/31264655647",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOTx7IOc8AAAAVrm2u9A",
+      "head_sha": "22c35479229ffc3d74630506277ce8af29b18334",
+      "url": "https://api.github.com/repos/neelesh500/team-goti/actions/jobs/93120737012",
+      "html_url": "https://github.com/neelesh500/team-goti/actions/runs/31264655647/job/93120737012",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-08-08T15:31:08Z",
+      "started_at": "2026-08-08T15:31:17Z",
+      "completed_at": "2026-08-08T15:31:31Z",
+      "name": "deploy",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-08-08T15:31:18Z",
+          "completed_at": "2026-08-08T15:31:20Z"
+        },
+        {
+          "name": "Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-08-08T15:31:20Z",
+          "completed_at": "2026-08-08T15:31:21Z"
+        },
+        {
+          "name": "Set up Node",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-08-08T15:31:21Z",
+          "completed_at": "2026-08-08T15:31:26Z"
+        },
+        {
+          "name": "Install dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-08-08T15:31:26Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        },
+        {
+          "name": "Build",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 5,
+          "started_at": "2026-08-08T15:31:29Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        },
+        {
+          "name": "Setup Pages",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-08-08T15:31:29Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        },
+        {
+          "name": "Upload artifact",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-08-08T15:31:29Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        },
+        {
+          "name": "Deploy to GitHub Pages",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-08-08T15:31:29Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        },
+        {
+          "name": "Post Set up Node",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-08-08T15:31:29Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        },
+        {
+          "name": "Post Checkout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-08-08T15:31:29Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-08-08T15:31:29Z",
+          "completed_at": "2026-08-08T15:31:29Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/neelesh500/team-goti/check-runs/93120737012",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000059,
+      "runner_name": "GitHub Actions 1000000059",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
