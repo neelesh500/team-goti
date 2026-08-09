@@ -50,7 +50,7 @@ async function generateAIResponse(sessionId, candidateMessage) {
             reply = analysis + transition;
         }
 
-        if (session.turns > 6) {
+        if (session.turns >= 8) {
             return {
                 text: "Thank you for these insightful answers. Based on our conversation, I've compiled your feedback. The interview is now complete.",
                 feedback: {
@@ -68,13 +68,14 @@ async function generateAIResponse(sessionId, candidateMessage) {
     }
 
     // --- REAL GEMINI API LOGIC --- //
-    if (session.turns > 6 && !session.concluded) {
+    if (session.turns >= 8 && !session.concluded) {
         session.concluded = true;
         // Ask Gemini to generate JSON feedback
         session.history.push({ role: "user", parts: [{ text: "The interview is now over. Provide a final evaluation of the candidate in STRICT JSON format exactly matching this structure without any markdown or extra text: {\"text\": \"final goodbye message\", \"feedback\": {\"strengths\": [\"str1\"], \"gaps\": [\"gap1\"], \"next\": [\"next1\"], \"summary\": \"overall summary\"}}" }] });
     }
 
     const currentTopic = curriculum[Math.min(session.turns > 0 ? session.turns - 1 : 0, curriculum.length - 1)];
+    const candidateStr = JSON.stringify(session.candidate.missions || []);
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -84,8 +85,9 @@ async function generateAIResponse(sessionId, candidateMessage) {
                 systemInstruction: {
                     parts: [{
                         text: `You are a strict, highly professional Technical AI Interviewer evaluating ${session.candidate.member.name} for the ${session.candidate.member.jobRole} role.
-Interview Progress: This is turn ${session.turns} of 6.
+Interview Progress: This is turn ${session.turns} of 8.
 CURRENT TOPIC FOCUS: ${currentTopic}
+Candidate Progress Profile: ${candidateStr} (Use this to personalize: ask harder questions on things they passed easily, and specifically target skipped topics or topics with many attempts.)
 
 CRITICAL BEHAVIOR RULES (DO NOT IGNORE):
 1. CURRENT TOPIC MANDATE: You MUST formulate your NEXT question based on the CURRENT TOPIC FOCUS (${currentTopic}). If they already answered well, move on to this new topic. Do NOT stay stuck on previous topics!
