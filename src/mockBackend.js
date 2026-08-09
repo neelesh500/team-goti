@@ -23,11 +23,31 @@ async function generateAIResponse(sessionId, candidateMessage) {
         let reply = "";
         if (badWords.some(w => lowerMsg.includes(w))) {
             reply = "Excuse me! As your interviewer, I expect a professional tone and appropriate language. Please compose yourself and answer the question technically.";
-        } else if (candidateMessage.length < 15) {
-            reply = "Could you please elaborate on that? In a technical interview, we expect detailed explanations.";
+        } else if (candidateMessage.length < 15 && session.turns % 2 !== 0) {
+            reply = "That's a very brief answer. Could you please elaborate with more technical specifics?";
         } else {
+            const goodKeywords = ["api", "database", "vector", "embedding", "llm", "rag", "mcp", "agent", "prompt", "context", "model", "function", "token"];
+            const foundCount = goodKeywords.filter(k => lowerMsg.includes(k)).length;
+
+            let analysis = "";
+            if (foundCount >= 2) {
+                analysis = "Good points there, you seem to have a solid grasp on those concepts. ";
+            } else if (foundCount === 1) {
+                analysis = "That's somewhat relevant, though I would expect a bit more technical depth. ";
+            } else {
+                analysis = "I'm not fully convinced by that explanation; it lacks specific technical details. ";
+            }
+
             const nextTopic = curriculum[Math.min(session.turns - 1, curriculum.length - 1)];
-            reply = `That's an interesting perspective. Moving on to ${nextTopic}, can you explain your practical experience and understanding of it?`;
+            const transitions = [
+                `Let's pivot to ${nextTopic}. What can you tell me about it?`,
+                `Moving on, how do you handle ${nextTopic} in your projects?`,
+                `Now, let's discuss ${nextTopic}. What's your practical experience there?`,
+                `Next up is ${nextTopic}. Please explain your understanding of it.`
+            ];
+            const transition = transitions[session.turns % transitions.length];
+
+            reply = analysis + transition;
         }
 
         if (session.turns > 6) {
@@ -54,6 +74,8 @@ async function generateAIResponse(sessionId, candidateMessage) {
         session.history.push({ role: "user", parts: [{ text: "The interview is now over. Provide a final evaluation of the candidate in STRICT JSON format exactly matching this structure without any markdown or extra text: {\"text\": \"final goodbye message\", \"feedback\": {\"strengths\": [\"str1\"], \"gaps\": [\"gap1\"], \"next\": [\"next1\"], \"summary\": \"overall summary\"}}" }] });
     }
 
+    const currentTopic = curriculum[Math.min(session.turns > 0 ? session.turns - 1 : 0, curriculum.length - 1)];
+
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
@@ -61,13 +83,16 @@ async function generateAIResponse(sessionId, candidateMessage) {
             body: JSON.stringify({
                 systemInstruction: {
                     parts: [{
-                        text: `You are a strict, highly professional Technical AI Interviewer for the 'AI Cohort'. You are interviewing ${session.candidate.member.name} for the role of ${session.candidate.member.jobRole}. 
-Your goal is to test their knowledge on: RAG, Agents, LLMs, Vector DBs, and MCP.
-RULES:
-1. Ask ONE clear, challenging technical question at a time.
-2. Adapt to their previous answer. If they give a short/vague answer, press them for details.
-3. IF THEY USE UNPROFESSIONAL, ABUSIVE, SLANG, OR WRONG LANGUAGE, severely scold them like a real, demanding interviewer. Remind them of professionalism.
-4. Maintain context. Don't repeat questions.` }]
+                        text: `You are a strict, highly professional Technical AI Interviewer evaluating ${session.candidate.member.name} for the ${session.candidate.member.jobRole} role.
+Interview Progress: This is turn ${session.turns} of 6.
+CURRENT TOPIC FOCUS: ${currentTopic}
+
+CRITICAL BEHAVIOR RULES (DO NOT IGNORE):
+1. CURRENT TOPIC MANDATE: You MUST formulate your NEXT question based on the CURRENT TOPIC FOCUS (${currentTopic}). If they already answered well, move on to this new topic. Do NOT stay stuck on previous topics!
+2. DEEP EVALUATION FIRST: Before asking the next question, briefly evaluate their previous answer. Point out what was correct, or missing.
+3. NEVER BE REPETITIVE: Do not repeat standard transition phrases. Vary your wording completely each time.
+4. SINGLE QUESTION: Ask ONE clear, challenging technical question at a time. Keep your response structured: Evaluation first, then the next question on ${currentTopic}.`
+                    }]
                 },
                 contents: session.history
             })
