@@ -13,6 +13,24 @@ function App() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [progress, setProgress] = useState(null);
+
+  const renderMessageBody = (text) => {
+    if (!text) return null;
+    const parts = text.split(/```/g);
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        const code = part.replace(/^[\w-]*\n/, '');
+        return (
+          <pre key={index} style={{ backgroundColor: '#0f172a', padding: '12px', borderRadius: '8px', overflowX: 'auto', margin: '8px 0', fontSize: '13px', fontFamily: 'monospace', border: '1px solid #334155' }}>
+            <code style={{ color: '#e2e8f0' }}>{code}</code>
+          </pre>
+        );
+      }
+      const bParts = part.split(/\*\*(.*?)\*\*/g);
+      return <span key={index}>{bParts.map((bp, i) => i % 2 === 1 ? <strong key={i} style={{ color: 'white' }}>{bp}</strong> : bp)}</span>;
+    });
+  };
 
   const messagesEndRef = useRef(null);
 
@@ -39,6 +57,7 @@ function App() {
       const data = await mockStart(sessionId, candidate);
       setSession(sessionId);
       setMessages([{ role: 'ai', text: data.reply }]);
+      if (data.progress) setProgress(data.progress);
     } catch (err) {
       console.error(err);
       setMessages([{ role: 'ai', text: "Error connecting to the interview server." }]);
@@ -60,6 +79,7 @@ function App() {
       const data = await chatInterview(session, userText);
 
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
+      if (data.progress) setProgress(data.progress);
 
       if (data.done && data.feedback) {
         setFeedback(data.feedback);
@@ -69,6 +89,13 @@ function App() {
       setMessages(prev => [...prev, { role: 'ai', text: "Network error. Please try again." }]);
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
     }
   };
 
@@ -89,18 +116,26 @@ function App() {
           <div className="progress-section" style={{ flexGrow: 1, overflowY: 'auto' }}>
             <h3 className="progress-title">Completed Missions</h3>
             {selectedCandidate.missions.filter(m => m.passed).slice(0, 5).map((m, i) => (
-              <motion.div
-                key={i}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.1 * i }}
-                className="progress-item"
-              >
+              <motion.div key={i} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.1 * i }} className="progress-item">
                 <CheckCircle2 size={16} />
                 <span style={{ fontSize: '13px' }}>{m.title}</span>
               </motion.div>
             ))}
-            <span style={{ fontSize: '11px', color: '#94a3b8' }}>+ {selectedCandidate.signals.missionsCompleted - 5} more</span>
+            {selectedCandidate.signals && selectedCandidate.signals.missionsCompleted > 5 && (
+              <span style={{ fontSize: '11px', color: '#94a3b8' }}>+ {selectedCandidate.signals.missionsCompleted - 5} more</span>
+            )}
+
+            {/* Show skipped topics if any */}
+            {selectedCandidate.missions.some(m => m.skipped) && (
+              <div style={{ marginTop: '20px' }}>
+                <h3 className="progress-title" style={{ color: '#f87171' }}>Skipped Topics</h3>
+                {selectedCandidate.missions.filter(m => m.skipped).map((m, i) => (
+                  <div key={i} className="progress-item" style={{ color: '#f87171', borderLeft: '2px solid #ef4444', paddingLeft: '8px' }}>
+                    <span style={{ fontSize: '13px' }}>{m.title}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -138,10 +173,20 @@ function App() {
             <Bot size={24} style={{ color: '#60a5fa' }} />
             <span>AI Technical Interviewer</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#94a3b8' }}>
-            <div className="ai-indicator" />
-            Active Mode
-          </div>
+          {progress && !feedback && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ fontSize: '12px', color: '#cbd5e1', backgroundColor: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                Questions Build: <strong>{progress.turn}/{progress.total}</strong>
+              </div>
+              <div style={{ fontSize: '12px', color: '#60a5fa', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '4px 10px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                Days Covered: <strong>{Math.min(progress.turn, 4) + (progress.turn > 4 ? Math.floor((progress.turn - 4) / 2) : 0)} / 7</strong>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#10b981' }}>
+                <div className="ai-indicator" style={{ backgroundColor: '#10b981' }} />
+                Active
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="messages-container">
@@ -153,7 +198,7 @@ function App() {
                 animate={{ opacity: 1, y: 0 }}
                 className={`message-bubble ${msg.role === 'ai' ? 'message-ai' : 'message-user'}`}
               >
-                {msg.text}
+                {renderMessageBody(msg.text)}
               </motion.div>
             ))}
           </AnimatePresence>
@@ -216,18 +261,20 @@ function App() {
           <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={sendMessage} className="input-area">
-          <input
-            type="text"
+        <form onSubmit={sendMessage} className="input-area" style={{ alignItems: 'flex-end', padding: '16px' }}>
+          <textarea
             className="chat-input"
-            placeholder={feedback ? "Interview concluded." : "Type your response..."}
+            style={{ resize: 'none', height: '60px', borderRadius: '12px', lineHeight: '1.5', padding: '12px', flexGrow: 1 }}
+            placeholder={feedback ? "Interview concluded." : "Type response or paste code... (Shift + Enter for new line)"}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             disabled={isTyping || !!feedback || !session}
           />
           <button
             type="submit"
             className="send-button"
+            style={{ marginBottom: '6px' }}
             disabled={!input.trim() || isTyping || !!feedback || !session}
           >
             <Send size={20} />

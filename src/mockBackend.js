@@ -186,6 +186,7 @@ export const startInterview = async (sessionId, candidate) => {
         sessionId,
         reply: msg,
         done: false,
+        progress: { turn: sessions[sessionId].turns, total: 8 }
     };
 };
 
@@ -197,5 +198,6 @@ export const chatInterview = async (sessionId, message) => {
         reply: response.text,
         done: response.isFinished,
         feedback: response.feedback,
+        progress: { turn: sessions[sessionId].turns, total: 8 }
     };
 };
